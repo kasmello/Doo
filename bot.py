@@ -6,8 +6,10 @@ import random
 import asyncio
 from discord.ext import commands
 
+
 from dotenv import load_dotenv
 from lyrics_getter import return_lyrics
+from api_db import *
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -34,7 +36,7 @@ class DooBot(commands.Bot):
 
             self.phrases  = json.load(file)
 
-    def reset_emoji_game(self,ctx):
+    async def reset_emoji_game(self,ctx):
         self.channel_game_status[ctx.channel.id] = {
             'playing_emoji_game': False,
             'current_emoji': None,
@@ -42,11 +44,53 @@ class DooBot(commands.Bot):
             'who_answered': {},
             'player_scores': {}
         }
+        await self.return_high_scores(ctx)
 
-    def get_all_emoji_scores_str(self,ctx):
+    async def return_high_scores(self,ctx):
+        headers = "| Players | Servers | Scores |\n"
+        place_id = ctx.guild.id if ctx.guild else ctx.channel.id
+        place = ctx.guild.name if ctx.guild else "Private"
+        top_5_place = grab_top_5_place(place_id)
+        line = "| " + "|".join(["-" * (len(key) + 2) for key in ['Players','Servers','Scores']]) + " |\n"
+        top_5_place_table = headers + line
+        for row in top_5_place:
+            try:
+                user = await self.fetch_user(row['user_id'])
+                user = user.name
+            except discord.errors.NotFound:
+                user = "Private"
+            top_5_place_table += f"| {user} | {place} | {row['score']} |"
+
+        # top_5_place_table += "```"
+        await ctx.send(f"**Here are the top 5 scores for this server**\n\n{top_5_place_table}")
+        top_5_global = grab_top_5_global()
+        top_5_global_table = headers + line
+        for row in top_5_global:
+            try:
+                user = await self.fetch_user(row['user_id'])
+                user = user.name
+            except discord.errors.NotFound:
+                user = "Private"
+            try:
+                place = await self.fetch_guild(row['place_id'])
+            except discord.errors.NotFound:
+                place = "Private"
+            top_5_global_table += f"| {user} | {place} | {row['score']} |\n"
+
+        # top_5_global_table += "```"
+        await ctx.send(f"**Here are the top 5 scores globally**\n{top_5_global_table}")
+
+
+    async def get_all_emoji_scores_str(self,ctx):
         result = ''
         for k,v in self.channel_game_status[ctx.channel.id]['player_scores'].items():
-            result += f'{k} - {v}\n'
+            user = await self.fetch_user(k)
+            user = user.mention
+            result += f'{user} - {v}\n'
+            place_id = ctx.guild.id if ctx.guild else ctx.channel.id
+            is_new_high_score = insert_score(k,place_id,v)
+            if is_new_high_score:
+                await ctx.send(f"\n**{random.choice(self.phrases['nice'])}** {user} has just achieved a high score!🎊\n")
         return result
 
 
@@ -64,7 +108,7 @@ class DooBot(commands.Bot):
         elif emoji in self.emoji_dict[self.channel_game_status[ctx.channel.id]['current_emoji']]:
             await ctx.send(f"**{ctx.author.mention}, {random.choice(self.phrases['nice'])}!**")
             await ctx.send(f"You answered with {self.channel_game_status[ctx.channel.id]['emoji_time_left']} seconds left")
-            self.channel_game_status[ctx.channel.id]['player_scores'][ctx.author.mention] = self.channel_game_status[ctx.channel.id]['player_scores'].get(ctx.author.mention,0)+1
+            self.channel_game_status[ctx.channel.id]['player_scores'][ctx.author.id] = self.channel_game_status[ctx.channel.id]['player_scores'].get(ctx.author.id,0)+1
             if self.channel_game_status[ctx.channel.id]['emoji_time_left'] <= 5:
                 await ctx.send(random.choice(self.phrases['hurry up']))
 
@@ -74,10 +118,11 @@ class DooBot(commands.Bot):
 
         else:
             if not ctx.guild:
+                all_scores = await self.get_all_emoji_scores_str(ctx)
                 await ctx.send(f"**{random.choice(self.phrases['oh no'])}**\nGame over!\
                                \n\nTotal Score: **{sum(self.channel_game_status[ctx.channel.id]['player_scores'].values())}**\
-                               \n{self.get_all_emoji_scores_str(ctx)}")  
-                self.reset_emoji_game(ctx)
+                               \n{all_scores}")  
+                await self.reset_emoji_game(ctx)
             else:
                 await ctx.send(f"**{random.choice(self.phrases['oh no'])}**\nThat's not right!")
                 self.channel_game_status[ctx.channel.id]['who_answered'][ctx.author.id]=emoji
@@ -86,11 +131,13 @@ class DooBot(commands.Bot):
         while self.channel_game_status[ctx.channel.id]['emoji_time_left'] > 0:
             await asyncio.sleep(1)
             self.channel_game_status[ctx.channel.id]['emoji_time_left'] -= 1
-        if self.channel_game_status[ctx.channel.id]['playing_emoji_game']: #this is to prevent the game over message from presenting twie
+
+        if self.channel_game_status[ctx.channel.id]['playing_emoji_game']: #this is to prevent the game over message from presenting twice
+            all_scores = await self.get_all_emoji_scores_str(ctx)
             await ctx.send(f"**{random.choice(self.phrases['time up'])}**\nGame over!\
                                \nTotal Score: **{sum(self.channel_game_status[ctx.channel.id]['player_scores'].values())}**\
-                               \n{self.get_all_emoji_scores_str(ctx)}")  
-            self.reset_emoji_game(ctx)
+                               \n{all_scores}")  
+            await self.reset_emoji_game(ctx)
             
 
 
@@ -141,7 +188,6 @@ async def choose(ctx, *args):
     if bot.channel_game_status[ctx.channel.id]['playing_emoji_game']:
         if len(args) > 1 or len(args[0]) > 1:
             await ctx.send("You sent more than 1 emoji, I'm only taking the first!")
-        print(args)
         await bot.check_emoji(ctx,args[0][0])
 
 @bot.command()
