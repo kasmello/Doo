@@ -98,21 +98,21 @@ class DooBot(commands.Bot):
 bot = DooBot(command_prefix='!',intents=intents)
 
 @bot.command()
-async def devbuild(ctx,*args):
+async def mcmbuild(ctx,*args):
     await ctx.send(f'I build you a {args[0]} house, you peasant!')
     print(f'{ctx.author.name} has requested for a minecraft build')
 
 @bot.command()
-async def devhelp(ctx, *args):
+async def mcmhelp(ctx, *args):
     await ctx.author.send(f'**Hello** {ctx.author.mention}, here are some helpful commands :)\n\n\
-                                  Type ***!devbuild*** *material_of_your_choice* to make a house of that material\n\
-                                  Type ***!devsad*** to get a sad song delivered to your nearest chat\n\
-                                  Type ***!devemojigame*** to play the emoji game ;)\n\nHave fun!')
+                                  Type ***!mcmbuild*** *material_of_your_choice* to make a house of that material\n\
+                                  Type ***!mcmsad*** to get a sad song delivered to your nearest chat\n\
+                                  Type ***!mcmemojigame*** to play the emoji game ;)\n\nHave fun!')
     print(f'{ctx.author.name} has requested for help')
 
 
 @bot.command()
-async def devemojigame(ctx, *args):
+async def mcmemojigame(ctx, *args):
     try:
         if bot.channel_game_status[ctx.channel.id]['playing_emoji_game']:
             await ctx.send("This channel is already playing!")
@@ -145,7 +145,7 @@ async def choose(ctx, *args):
         await bot.check_emoji(ctx,args[0][0])
 
 @bot.command()
-async def devsad(ctx, *args):
+async def mcmsad(ctx, *args):
     await ctx.send(f'{random.choice(bot.phrases["wait"])} A sad song is coming!')
     print(f'{ctx.author.name} has requested for Joji Lyrics')
     lyrics = return_lyrics()
