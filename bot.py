@@ -25,6 +25,7 @@ class DooBot(commands.Bot):
         self.emoji_score = 0
         self.current_emoji = None
         self.emoji_time_left = 0
+        self.who_answered = {}
         with open('phrases.json', 'r', encoding='utf-8') as file:
 
             self.phrases  = json.load(file)
@@ -37,30 +38,37 @@ class DooBot(commands.Bot):
 
     async def play_emoji_turn(self,ctx):
         self.current_emoji = random.choice(list(self.emoji_dict.keys()))
-        await ctx.send(f"Current Emoji: {self.current_emoji}")
+        await ctx.send(f"Current Emoji:")
+        await ctx.send(self.current_emoji)
         
     async def check_emoji(self,ctx,emoji):
         print(f'{ctx.message.author.name} said {emoji}')
-        if emoji in self.emoji_dict[self.current_emoji]:
-            await ctx.send(f"**{random.choice(self.phrases['nice'])}!**")
+        if ctx.message.author.name in self.who_answered.keys():
+            await ctx.send(f'You already answered {ctx.message.author.mention}!')
+        elif emoji in self.emoji_dict[self.current_emoji]:
+            await ctx.send(f"**{ctx.message.author.mention}, {random.choice(self.phrases['nice'])}!**")
             await ctx.send(f"You answered with {self.emoji_time_left} seconds left")
             if self.emoji_time_left <= 5:
                 await ctx.send(random.choice(self.phrases['hurry up']))
             self.emoji_score += 1
             self.emoji_time_left = 60
+            self.who_answered = {}
             await self.play_emoji_turn(ctx)
         else:
-            await ctx.send(f"**{random.choice(self.phrases['oh no'])}**\nGame over!\n\n\nScore: {self.emoji_score}")
-            self.reset_emoji_game()
+            # await ctx.send(f"**{random.choice(self.phrases['oh no'])}**\nGame over!\n\n\nScore: {self.emoji_score}")
+            await ctx.send(f"**{random.choice(self.phrases['oh no'])}**\nThat's not right!")
+            self.who_answered[ctx.message.author.name]=emoji
+            # self.reset_emoji_game()
         
     async def countdown(self, ctx):
         while self.emoji_time_left > 0:
             await asyncio.sleep(1)
             self.emoji_time_left -= 1
             print(self.emoji_time_left)
-        await ctx.send(f"**{random.choice(self.phrases['time up'])}**\nGame over!\n\n\nScore: {self.emoji_score}")
-        self.reset_emoji_game()
-        
+        if self.playing_emoji_game:
+            await ctx.send(f"**{random.choice(self.phrases['time up'])}**\nGame over!\n\n\nScore: {self.emoji_score}")
+            self.reset_emoji_game()
+            
 
 
 
@@ -73,7 +81,7 @@ async def mcmbuild(ctx,*args):
 
 @bot.command()
 async def mcmhelp(ctx, *args):
-    await ctx.message.author.send(f'**Hello** @{ctx.message.author.name}, here are some helpful commands :)\n\n\
+    await ctx.message.author.send(f'**Hello** {ctx.message.author.mention}, here are some helpful commands :)\n\n\
                                   Type ***!mcmbuild*** *material_of_your_choice* to make a house of that material\n\
                                   Type ***!mcmsad*** to get a sad song delivered to your nearest chat\n\
                                   Type ***!mcmemojigame*** to play the emoji game ;)\n\nHave fun!')
@@ -82,12 +90,15 @@ async def mcmhelp(ctx, *args):
 
 @bot.command()
 async def mcmemojigame(ctx, *args):
+    if bot.playing_emoji_game:
+        await ctx.send("You are already playing!")
+        return
     with open('emoji_pairing.json', 'r', encoding='utf-8') as file:
 
         bot.emoji_dict  = json.load(file)
         bot.playing_emoji_game = True
-        await ctx.send("**Let's play the emoji game, where anyone can play!🍆🍆🍆**\nI type an emoji, you type one that matches it. You\
-                       have 60 seconds to decide on an answer before the game is over.\nMake sure for each response, you put ***!choose*** beforehand.")
+        await ctx.send("**Let's play the emoji game, where anyone can play!🍆🍆🍆**\nI type an emoji, you type one that suits it.\
+                       \nYou have 60 seconds to decide on an answer before the game is over.\nMake sure for each response, you put ***!choose*** beforehand.")
         bot.emoji_time_left = 60
         await bot.play_emoji_turn(ctx)
         await bot.countdown(ctx)
