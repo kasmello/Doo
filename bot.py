@@ -32,11 +32,11 @@ class DooBot(commands.Bot):
     def reset_emoji_game(self):
         self.playing_emoji_game = False
         self.emoji_score = 0
+        self.emoji_time_left = 0
         self.current_emoji = None
 
     async def play_emoji_turn(self,ctx):
         self.current_emoji = random.choice(list(self.emoji_dict.keys()))
-        await self.countdown(ctx)
         await ctx.send(f"Current Emoji: {self.current_emoji}")
         
     async def check_emoji(self,ctx,emoji):
@@ -57,6 +57,7 @@ class DooBot(commands.Bot):
         while self.emoji_time_left > 0:
             await asyncio.sleep(1)
             self.emoji_time_left -= 1
+            print(self.emoji_time_left)
         await ctx.send(f"**{random.choice(self.phrases['time up'])}**\nGame over!\n\n\nScore: {self.emoji_score}")
         self.reset_emoji_game()
         
@@ -89,6 +90,7 @@ async def mcmemojigame(ctx, *args):
                        have 60 seconds to decide on an answer before the game is over.\nMake sure for each response, you put ***!choose*** beforehand.")
         bot.emoji_time_left = 60
         await bot.play_emoji_turn(ctx)
+        await bot.countdown(ctx)
 
 @bot.command()
 async def choose(ctx, *args):
