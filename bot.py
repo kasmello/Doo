@@ -47,7 +47,7 @@ class DooBot(commands.Bot):
         await self.return_high_scores(ctx)
 
     async def return_high_scores(self,ctx):
-        headers = "| Players | Servers | Scores |\n"
+        headers = "```\n| Players | Servers | Scores |\n"
         place_id = ctx.guild.id if ctx.guild else ctx.channel.id
         place = ctx.guild.name if ctx.guild else "Private"
         top_5_place = grab_top_5_place(place_id)
@@ -59,10 +59,10 @@ class DooBot(commands.Bot):
                 user = user.name
             except discord.errors.NotFound:
                 user = "Private"
-            top_5_place_table += f"| {user} | {place} | {row['score']} |"
+            top_5_place_table += f"| {user} | {place} | {row['score']} |\n"
 
-        # top_5_place_table += "```"
-        await ctx.send(f"**Here are the top 5 scores for this server**\n\n{top_5_place_table}")
+        top_5_place_table += "```"
+        await ctx.send(f"**Here are the top 5 scores for this server**\n\n{top_5_place_table}\n")
         top_5_global = grab_top_5_global()
         top_5_global_table = headers + line
         for row in top_5_global:
@@ -77,8 +77,8 @@ class DooBot(commands.Bot):
                 place = "Private"
             top_5_global_table += f"| {user} | {place} | {row['score']} |\n"
 
-        # top_5_global_table += "```"
-        await ctx.send(f"**Here are the top 5 scores globally**\n{top_5_global_table}")
+        top_5_global_table += "```"
+        await ctx.send(f"\n**Here are the top 5 scores globally**\n{top_5_global_table}")
 
 
     async def get_all_emoji_scores_str(self,ctx):
