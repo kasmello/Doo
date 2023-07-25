@@ -78,20 +78,19 @@ class DooBot(commands.Bot):
             top_5_global_table += f"| {user} | {place} | {row['score']} |\n"
 
         top_5_global_table += "```"
-        await ctx.send(f"\n**Here are the top 5 scores globally**\n{top_5_global_table}")
+        await ctx.send(f"\n**Here are the top 5 scores globally**\n\n{top_5_global_table}\n")
 
 
     async def get_all_emoji_scores_str(self,ctx):
         result = ''
+        high_scores = ''
         for k,v in self.channel_game_status[ctx.channel.id]['player_scores'].items():
-            user = await self.fetch_user(k)
-            user = user.mention
-            result += f'{user} - {v}\n'
+            result += f'{k} - {v}\n'
             place_id = ctx.guild.id if ctx.guild else ctx.channel.id
-            is_new_high_score = insert_score(k,place_id,v)
+            is_new_high_score = insert_score(k[2:-1],place_id,v)
             if is_new_high_score:
-                await ctx.send(f"\n**{random.choice(self.phrases['nice'])}** {user} has just achieved a high score!🎊\n")
-        return result
+                high_scores += f"\n**{random.choice(self.phrases['nice'])}** {k} has just achieved a high score!🎊\n"
+        return result + high_scores
 
 
     async def play_emoji_turn(self,ctx):
@@ -102,7 +101,7 @@ class DooBot(commands.Bot):
     async def check_emoji(self,ctx,emoji):
         print(f'{ctx.author.name} said {emoji}')
 
-        if ctx.author.id in self.channel_game_status[ctx.channel.id]['who_answered'].keys():
+        if ctx.author.mention in self.channel_game_status[ctx.channel.id]['who_answered'].keys():
             await ctx.send(f'You already answered {ctx.author.mention}!')
 
         elif emoji in self.emoji_dict[self.channel_game_status[ctx.channel.id]['current_emoji']]:
@@ -125,7 +124,7 @@ class DooBot(commands.Bot):
                 await self.reset_emoji_game(ctx)
             else:
                 await ctx.send(f"**{random.choice(self.phrases['oh no'])}**\nThat's not right!")
-                self.channel_game_status[ctx.channel.id]['who_answered'][ctx.author.id]=emoji
+                self.channel_game_status[ctx.channel.id]['who_answered'][ctx.author.mention]=emoji
         
     async def countdown(self, ctx):
         while self.channel_game_status[ctx.channel.id]['emoji_time_left'] > 0:
@@ -189,6 +188,10 @@ async def choose(ctx, *args):
         if len(args) > 1 or len(args[0]) > 1:
             await ctx.send("You sent more than 1 emoji, I'm only taking the first!")
         await bot.check_emoji(ctx,args[0][0])
+
+@bot.command()
+async def mcmtest(ctx):
+    print(ctx.author.mention)
 
 @bot.command()
 async def mcmsad(ctx, *args):
