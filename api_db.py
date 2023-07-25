@@ -8,6 +8,9 @@ SUPA_URL = os.getenv('SUPA_URL')
 supabase: Client = create_client(SUPA_URL,SUPA_API)
 
 def insert_score(user_id, place_id, score):
+    user_id = int(user_id)
+    place_id = int(place_id)
+    score = int(score)
     response = supabase.table('emoji_high_scores').select('score').eq("user_id", user_id).eq("place_id",place_id).execute()
     if len(response.data)==0:
         print(f'inserting new record for {user_id} at {place_id} into emoji')
