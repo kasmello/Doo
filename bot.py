@@ -107,7 +107,8 @@ class DooBot(commands.Bot):
         elif emoji in self.emoji_dict[self.channel_game_status[ctx.channel.id]['current_emoji']]:
             await ctx.send(f"**{ctx.author.mention}, {random.choice(self.phrases['nice'])}!**")
             await ctx.send(f"You answered with {self.channel_game_status[ctx.channel.id]['emoji_time_left']} seconds left")
-            self.channel_game_status[ctx.channel.id]['player_scores'][ctx.author.id] = self.channel_game_status[ctx.channel.id]['player_scores'].get(ctx.author.id,0)+1
+            self.channel_game_status[ctx.channel.id]['player_scores'][ctx.author.mention] = \
+                self.channel_game_status[ctx.channel.id]['player_scores'].get(ctx.author.mention,0)+1
             if self.channel_game_status[ctx.channel.id]['emoji_time_left'] <= 5:
                 await ctx.send(random.choice(self.phrases['hurry up']))
 
