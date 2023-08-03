@@ -138,6 +138,12 @@ class DooBot(commands.Bot):
                                \nTotal Score: **{sum(self.channel_game_status[ctx.channel.id]['player_scores'].values())}**\
                                \n{all_scores}")  
             await self.reset_emoji_game(ctx)
+
+    async def ping_db(self):
+        while 1 > 0:
+            await asyncio.sleep(86400)
+            grab_top_5_place(1)
+            print('DB pinged!')
             
 
 
@@ -205,6 +211,8 @@ async def mcmsad(ctx, *args):
 @bot.event
 async def on_ready():
     print(f'Logged on as {bot.user}!')
+    await bot.ping_db()
 
 bot.run(TOKEN)
+
 
